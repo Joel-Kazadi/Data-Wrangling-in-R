@@ -1,0 +1,441 @@
+---
+title: "**Manipulation avancée des dataframes**"
+author: "*Joël K. Kazadi*"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    number_sections: yes
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Nous avons vu dans les leçons précédentes que les objets de classe "dataframe" sont hétérogènes, i.e. ils permettent de stocker des données de plusieurs modes. Les dataframes sont des tableaux de données où chaque ligne correspond à un individu, et chaque colonne à une variable. Les variables d'un dataframe peuvent être de nature variée. Rappelons le code de création d'un dataframe :
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(knitr)
+
+# Creation du dataframe
+data <- data.frame(Econometrie = c(18,16,17,18),
+                   Statistique = c(14,13,15,19),
+                   Niveau = c("Bon","Moyen",NA,"Excellent"),
+                   row.names = c("Kadima","Kazadi","Nsamba","Malu"))
+
+# La fonction kable du package knitr permet de generer
+# des tableaux de maniere plus elegante
+kable(data, label = NA, caption = "Tableau des données")
+```
+
+Dans cette section, il sera question d'aborder quelques notions relatives à la manipulation des dataframes. Il s'agit notamment de : (i) l'ajout et la suppression des variables, (ii) la sélection des individus par tranche, (iii) la subdivision du dataframe, (iv) la concaténation des dataframes, etc.
+
+# Ajout et Suppression des variables
+
+Considérons un tableau des données relatif à l'évolution des indicateurs clés au sein d'une industrie entre 1970 et 2019.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Specification du repertoire de travail
+setwd("E:/Data_Science/RStudio/")
+
+# Importation du dataset
+library(readxl)
+data_industrie <- read_excel("Data_frame.xlsx",
+                             sheet = "time_series",
+                             col_names = TRUE)
+
+# Impression des 10 premieres lignes du dataset
+kable(head(data_industrie, n = 10L),
+      label = NA, caption = "Evolution des indicateurs")
+```
+
+Supposons que l'on veuille créer une colonne nommé "gain" dans ce dataset. Il faudra ajouter une nouvelle variable, sachant que le bénéfice correspond à la différence entre les produits et les charges.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Ajout de la variable GAIN
+data_industrie$gain <- data_industrie$produits - data_industrie$charges
+
+# Impression des 10 premieres lignes du dataset
+kable(head(data_industrie, n = 10L),
+      label = NA, caption = "Evolution des indicateurs")
+```
+
+Supposons à présent qu'il nous soit demandé de supprimer la variable "environnement" du dataset. Tout comme pour le cas des matrices, les colonnes d'un dataframe sont indicées par des nombres entiers naturels à partir du chiffre "1". La variable "environnement" a donc pour indice dans le dataframe le chiffre "2". Supprimer cette variable dans le dataframe consistera tout simplement à imprimer ce dataframe en renseignant le nombre opposé à l'indice de la variable à retirer, i.e. il faut indiquer "-2".
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Suppression de la variable ENVIRONNEMENT
+kable(head(data_industrie[,-2], n = 10L),
+      label = NA, caption = "Evolution des indicateurs")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+cat("\n\n\\pagebreak\n")
+```
+
+# Sélection des lignes par tranche
+
+Les fonctions `head` et `tail` permettent respectivement de sélectionner les premières et les dernières lignes d'un dataframe. Ainsi, pour sélectionner des lignes suivant d'autres critères, on fait recours une fois de plus au principe d'indexation des dataframes (*cf*. la leçon sur les matrices).
+
+Supposons qu'il nous soit demandé de sélectionner les lignes d'indice 11 à 20. Le code de sélection par tranche est le suivant :
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Format du dataframe
+dim(data_industrie)
+
+# Selection par tranche
+kable(data_industrie[11:20,], label = NA,
+      caption = "Evolution des indicateurs")
+```
+
+Supposons à présent qu'il nous soit demandé de sélectionner les lignes d'indice 11 à 20 et d'indice 31 à 40.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+cat("\n\n\\pagebreak\n")
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Selection par tranche
+kable(data_industrie[c(11:20,31:40),], label = NA,
+      caption = "Evolution des indicateurs")
+```
+
+# Subdivision d'un dataframe
+
+Au-délà de la sélection par tranche à l'aide de l'indexation, il est possible d'avoir accès aux données d'un dataframe suivant d'autres critères beaucoup plus poussés. Il s'agit notamment des critères se rapportant aux opérateurs logiques. Pour cela, on va recourir à la fonction `subset`.
+
+Supposons qu'il nous soit demandé d'extraire les données de notre dataframe relatif aux indicateurs économiques d'une industrie uniquement à partir de l'année 2000. Le code est le suivant :
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+kable(subset(data_industrie, date >= 2000), label = NA,
+      caption="Evolution des indicateurs entre 2000 et 2019")
+```
+
+Il est également possible de combiner plusieurs critères logiques. Par exemple, pour extraire les données de 2000 à 2019, mais uniquement pour les années où l'état de l'environnement dans lequel l'industrie évolue est "favorable", on procède de la manière suivante :
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+kable(subset(data_industrie, date >= 2000 & environnement == "Favorable"),
+      label = NA,
+      caption="Evolution des indicateurs entre 2000 et 2019 (Environnement favorable)")
+```
+
+Partant de la subdivision précédente, supposons que l'on ne veuille afficher que les 3 dernières colonnes du dataset. Pour y arriver, l'on va utiliser l'argument `select` de la fonction `subset`.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+kable(subset(data_industrie, date >= 2000 & environnement == "Favorable",
+             select = c(date, produits, charges)),
+      label = NA,
+      caption="Evolution des indicateurs entre 2000 et 2019 (Environnement favorable)")
+```
+
+# Quelques fonctions raccourcies
+
+Ces fonctions permettent d'effectuer des opérations directement sur les objets R. Dans le cadre de cette leçon, nous en verrons de quatre types : (i) la fonction `apply`, (ii) la fonction `tapply`, (iii) la fonction `by`, et (iv) la fonction `aggregate`.
+
+## La fonction `apply`
+
+Cette fonction permet d'effectuer des calculs directement sur les rangées (lignes ou colonnes) d'un dataframe. Supposons que l'on veuille calculer la moyenne de toutes les variables quantitatives dans notre dataset. On procède comme suit :
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+kable(apply(X = subset(data_industrie,
+                       select = c(produits, charges, gain)),
+            MARGIN = 2,
+            FUN = "mean"),
+      col.names = "Moyenne",
+      caption = "Moyenne des variables quantitatives")
+```
+
+L'argument `MARGIN` indique la rangée par laquelle les calculs doivent s'effectuer. Si cet argument est spécifié à "2", les opérations s'effectueront par colonne. Si cet argument est spécifié à "1", les opérations s'effectueront par ligne.
+
+## La fonction `tapply`
+
+La fonction `apply` ne permet pas d'effectuer des opérations sur différentes sous-populations dans le dataset. La fonction `tapply` prend en compte cette particularité en donnant la possibilité de subdiviser les individus dans le dataset suivant les modalités d'une variable qualitative quelconque. Supposons qu'il nous soit demandé de calculer le bénéfice médian pour chaque type d'environnement où l'industrie a évolué.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+kable(tapply(X = data_industrie$gain,
+             INDEX = data_industrie$environnement,
+             FUN = "median"),
+      row.names = TRUE,
+      col.names = "Mediane",
+      caption = "Bénéfice médian selon le type d'environnement")
+```
+
+## La fonction `by`
+
+Tout comme la fonction `tapply`, la fonction `by` permet également d'effectuer des calculs sur plusieurs sous-populations. A la différence de la fonction `tapply` où les opérations portent essentiellement sur une seule variable (un vecteur), la fonction `by` autorise les calculs simultanément sur plusieurs variables (une matrice).
+
+Le code ci-après calcule les coefficients de corrélation entre les variables quantitatives prises deux-à-deux, en fonction du type d'environnement.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+by(data = subset(data_industrie,
+                 select = c(produits, charges, gain)),
+   INDICES = data_industrie$environnement,
+   FUN = cor)
+```
+
+## La fonction `aggregate`
+
+Cette fonction permet d'effectuer des calculs sur plusieurs variables dans un dataset subdivisé en sous-populations. Contrairement à la fonction `by` qui peut aussi s'appliquer sur les matrices, la fonction `aggregate` s'applique exclusivement sur les objets de classe "dataframe".
+
+Le code ci-après permet de générer le résumé statistique des variables quantitatives selon le type d'environnement de l'industrie.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+tab <- aggregate(x=subset(data_industrie,
+                          select = c(produits, charges, gain)),
+                 by = list(Environnement = data_industrie$environnement),
+                 FUN = summary)
+
+kable(cbind(tab$Environnement, tab$produits),
+      caption = "Resumé statistique : Produits")
+kable(cbind(tab$Environnement, tab$charges),
+      caption = "Resumé statistique : Charges")
+kable(cbind(tab$Environnement, tab$gain),
+      caption = "Resumé statistique : Bénéfices")
+```
+
+# Le package `dplyr`
+
+Développé par [Hadley Wickham]{.smallcaps}, le package `dplyr` fournit des outils simples pour les tâches de manipulation avancée de données. Ce package fonctionne comme une "grammaire" de manipulation de données, fournissant un ensemble cohérent de "verbes" qui aide à résoudre les problèmes de manipulation de données les plus courants. Les principaux verbes sont les suivants : (i) `select`, (ii) `filter`, (iii) `arrange`, et (iv) `mutate`.
+
+## Le verbe `select`
+
+Nous avons vu précédemment comment sélectionner les variables dans un dataframe suivant le principe d'indexation. Cependant, dans un dataset contenant plusieurs variables, il devient difficile de recourir aux indices de chacune de ces variables. Le verbe `select` facilite cet exercice en donnant la possibilité d'appeler les variables directement par leurs noms. Voici quelques exemples d'utilisation de ce verbe.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+cat("\n\n\\pagebreak\n")
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Specification de la variable qualitative comme variable categorielle
+library(dplyr)
+data_industrie$environnement <- as.factor(data_industrie$environnement)
+str(data_industrie)
+
+# Selection de quelques variables
+kable(head(select(data_industrie, date, environnement, produits, charges)),
+      caption = "Sélection des variables")
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Selection de quelques variables par tranche
+kable(head(select(data_industrie, date, produits : gain)),
+      caption = "Sélection des variables par tranche")
+
+# Selection des variables dont les noms commencent par la lettre E
+kable(head(select(data_industrie, starts_with("e")), n = 5L),
+      caption="Sélection des variables dont les noms commencent par la lettre \"e\" ")
+
+# Selection des variables dont les noms s'achevent par la lettre S
+kable(head(select(data_industrie, ends_with("s")), n = 5L),
+      caption="Sélection des variables dont les noms s'achèvent par la lettre \"s\" ")
+
+# Deselection d'une variable
+kable(head(select(data_industrie, -effectif), n = 5L),
+      caption = "Désélection d'une variables")
+
+# Deselection des variables dont les noms contiennent la suite de lettres AT
+kable(head(select(data_industrie, -contains("at")), n = 5L),
+      caption="Désélection des variables dont les noms contiennent
+      la suite de lettres \"at\" ")
+```
+
+## Le verbe `filter`
+
+Comme l'indique son nom, ce verbe permet de filtrer les lignes d'un dataframe en fonction des conditions logiques appliquées sur les colonnes de ce dataframe. Voici quelques exemples d'utilisation de ce verbe.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Impression des annees de perte ou l'environnement n'etait pas tres favorable,
+# et pendant lesquelles le chiffre d'affaires variait entre 5000 et 6000 
+kable(filter(data_industrie, gain < 0,
+             between(produits, 5000, 6000),
+             environnement != "Very favorable"),
+      caption = "Filtrage avancee")
+
+# Impression des annees ou l'environnement etait soit favorable, soit peu risque
+kable(head(filter(data_industrie,
+                  environnement %in% c("Favorable", "Low risk")),
+           n = 10L),
+      caption = "Filtrage avancee")
+
+# Impression des lignes pour lesquelles au moins une valeur des
+# colonnes EFFECTIF et SATISFACTION est superieure a 2
+kable(head(filter_all(select(data_industrie, effectif, satisfaction),
+                      any_vars(. > 2)),
+           n = 5L),
+      caption = "Filtrage avancee")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+cat("\n\n\\pagebreak\n")
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Impression des lignes pour lesquelles toutes les valeurs des
+# colonnes EFFECTIF et SATISFACTION sont superieures a 2
+kable(head(filter_all(select(data_industrie, effectif, satisfaction),
+                      all_vars(. > 2)),
+           n = 5L),
+      caption = "Filtrage avancee")
+```
+
+## Le verbe `arrange`
+
+Ce verbe permet de classer les lignes d'un dataframe par ordre croissant ou décroissant des valeurs d'une colonne quelconque.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Classement par ordre croissant des produits
+kable(tail(arrange(data_industrie, produits), n = 5L),
+      caption = "Ordre croissant")
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+cat("\n\n\\pagebreak\n")
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+# Classement par odre decroissant des charges
+kable(tail(arrange(data_industrie, desc(charges)), n = 5L),
+      caption = "Ordre decroissant")
+```
+
+## Le verbe `mutate`
+
+Ce verbe permet de créer de nouvelles colonnes dans le dataframe sur base des colonnes existantes, mais aussi de supprimer une ou plusieurs autres colonnes.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Creation d'une colonne qui calcule le taux de marge beneficiaire
+kable(head(mutate(data_industrie,
+                  profit_margin = gain*100/produits)),
+      caption = "Creation des variables")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+cat("\n\n\\pagebreak\n")
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Suppression de la colonne des effectifs
+kable(head(mutate(data_industrie, effectif = NULL), n = 5L),
+      caption = "Suppression des variables")
+```
+
+## L'opérateur *pipe*
+
+Il est possible d'utiliser de manière enchaînée plusieurs verbes `dplyr`. Pour y arriver, l'on utilise l'operateur *pipe* (`%>%`) qui permet de créer une liaison entre les verbes qui se succèdent[^1]. Cette syntaxe est connue sous le nom de "tuyautage" (*piping*).
+
+[^1]: *L'opérateur "pipe" s'obtient sur l'IDE RStudio à l'aide de la combinaison des touches **Ctrl + Shift + M** pour les laptops Windows. Pour les Macs, on utilise **Cmd + Shift + M**.*
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Illustration 1
+exemple1 <- data_industrie %>%
+  select(-environnement) %>%
+  arrange(charges)
+kable(head(exemple1, n = 5L), caption = "Illustration 1")
+
+# Illustration 2
+exemple2 <- data_industrie %>%
+  group_by(environnement) %>%
+  mutate(profit_margin = gain*100/produits,
+         cost_ratio = charges*100/produits) %>%
+  summarise_each(funs(mean, sd), profit_margin, cost_ratio)
+kable(exemple2, caption = "Illustration 2")
+```
+
+# Concaténation des dataframes
+
+La dernière opération relative à la manipulation des données, c'est la fusion des dataframes. Cette fusion peut se réaliser par lignes, par colonnes, ou suivant d'autres critères de jointure.
+
+## Concaténation par colonnes
+
+Créons deux dataframes composés chacun de deux vecteurs générés aléatoirement, puis fusionnons-les par colonnes à l'aide de la fonction `cbind`.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Graine de generation des nombres aleatoires
+set.seed(999)
+
+# Creation du premier dataframe
+v1 <- sample(x=seq(from=0.1, to=0.9, by=0.2), size=4, replace=T)
+v2 <- sample(x = 1:5, size = 4, replace = T)
+df1 <- data.frame(v1, v2)
+kable(df1, row.names = TRUE, caption = "DataFrame I")
+
+# Creation du deuxieme dataframe
+v3 <- sample(x = c(TRUE, FALSE), size = 4, replace = T)
+v4 <- sample(x = c("Blue", "Red"), size = 4, replace = T)
+df2 <- data.frame(v3, v4)
+kable(df2, row.names = TRUE, caption = "DataFrame II")
+
+# Concatenation par colonnes
+df_col <- cbind(df1, df2)
+kable(df_col, row.names = TRUE, caption = "Fusion par colonnes")
+```
+
+## Concaténation par lignes
+
+Créons un nouveau dataframe composé de quatre vecteurs générés aléatoirement, puis fusionnons-le avec le dataframe créé à la sous-section précédente par lignes à l'aide de la fonction `rbind`.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Graine de generation des nombres aleatoires
+set.seed(999)
+
+# Creation du nouveau dataframe
+v1 <- sample(x=seq(from=0.1, to=0.9, by=0.2), size=3, replace=T)
+v2 <- sample(x = 5:9, size = 3, replace = T)
+v3 <- sample(x = c(TRUE, FALSE), size = 3, replace = T)
+v4 <- sample(x = c("Green", "Yellow"), size = 3, replace = T)
+df3 <- data.frame(v1, v2, v3, v4)
+kable(df3, row.names = TRUE, caption = "DataFrame III")
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Concatenation par lignes
+df_row <- rbind(df_col, df3)
+kable(df_row, row.names = TRUE, caption = "Fusion par lignes")
+```
+
+## Jointure des dataframes
+
+Contrairement à la concaténation (*to bind*), la jointure (*to join*) concernent des dataframes différents, mais ayant une ou plusieurs colonnes communes. Nous verrons dans cette dernière sous-section comment fusionner deux dataframes ayant quelques colonnes communes, tout en gérant efficacement la présence des valeurs manquantes.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Creation d'un dataframe fictif
+v1 <- select(df_row[-7,], v1)
+v2 <- select(df_row[-7,], v2)
+v5 <- seq(from = 0, to = 1, by = 0.2)
+v6 <- c(rep(x = 9, times = 3), rep(x = 1, times = 3))
+df4 <- data.frame(v1, v2, v5, v6)
+kable(df4, row.names = TRUE, caption = "DataFrame IV")
+```
+
+Les dataframes présentés dans les tableaux 35 et 36 ont deux colonnes communes, ce sont les colonnes "v1" et "v2". Ainsi, nous allons procéder à leur fusion partant de ces colonnes communes. Cependant, étant donné que ces dataframes ne comportent pas le même nombre de lignes (7 \> 6), il y aura nécessité de gérer les valeurs manquantes susceptibles d'être ajoutées après fusion. Pour cela, nous ferons recours aux fonctions de jointure disponibles dans le package `dplyr`.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(dplyr)
+
+# Jointure partielle
+merging1 <- left_join(x = df_row, y = df4, by = c("v1","v2"))
+kable(merging1, row.names = TRUE, caption = "Jointure I")
+
+# Jointure interieure
+merging2 <- inner_join(x = df_row, y = df4, by = c("v1","v2"))
+kable(merging2, row.names = TRUE, caption = "Jointure II")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+cat("\n\n\\pagebreak\n")
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Jointure complete
+merging3 <- full_join(x = df_row[-1,], y = df4, by = c("v1","v2"))
+kable(merging3, row.names = TRUE, caption = "Jointure III")
+```
+
+-   Jointure partielle : Elle permet de joindre au dataframe de gauche (x) les individus dans le dataframe de droite (y), tout en conservant parmi les individus du dataframe de droite ceux qui n'ont pas d'observations pour quelques colonnes dans le dataframe de gauche. Ces valeurs manquantes sont complétées par des NAs.
+
+-   Jointure intérieure : Elle permet de joindre au dataframe de gauche (x) les individus dans le dataframe de droite (y), tout en supprimant parmi les individus du dataframe de droite ceux qui n'ont pas d'observations pour quelques colonnes dans le dataframe de gauche. Après fusion, il n'y aura aucune valeur manquante générée.
+
+-   Jointure complète : Elle permet de joindre au dataframe de gauche (x) les individus dans le dataframe de droite (y), tout en conservant parmi les individus du dataframe de droite ceux qui n'ont pas d'observations pour quelques colonnes dans le dataframe de gauche, mais en consérvant également les individus du dataframe de gauche qui n'ont pas d'observations pour quelques colonnes du dataframe de droite. Dans ce cas, il y aura des valeurs manquantes générées dans les deux sens.
+
+Il existe d'autres fonctions de jointure disponibles dans le package `dplyr`. L'on peut citer notamment la demi-jointure (`semi_join`) et la jointure contraire (`anti_join`). Le lecteur intéressé par ces fonctions additionnelles peut se référer à l'excellent ouvrage de [Christian Paroissin]{.smallcaps}, "*Pratique de la Data Science avec R*" publié aux éditions *Ellipses* en 2021, pour de plus amples détails d'utilisation et spécificités par rapport aux trois fonctions de jointure abordées dans le cadre de cette leçon.
